@@ -1,0 +1,23 @@
+# Node / Expo
+node_modules
+.expo
+dist
+build
+
+# OS / Windows
+AppData
+AppData/**
+C:\Users\fredy\AppData
+C:\Users\fredy\AppData\**
+ElevatedDiagnostics
+**/ElevatedDiagnostics/**
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
