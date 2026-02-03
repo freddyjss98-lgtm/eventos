@@ -1,80 +1,190 @@
-import { View, Text, FlatList, Pressable, Button } from "react-native";
+import { View, Text, FlatList, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
-import { getEvents } from "../../src/api/events";
-import { logout } from "../auth/auth";
+import * as Location from "expo-location";
+
+import { getEvents, getNearbyEvents } from "../../src/api/events";
+
+type EventItem = {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+};
+
+type NearbyEvent = EventItem & {
+  distance?: number;
+};
 
 export default function EventsScreen() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // =======================
+  // Obtener ubicación
+  // =======================
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window === "undefined") return;
+
+        const { status } =
+          await Location.requestForegroundPermissionsAsync();
+
+        if (status !== "granted") {
+          setLocationError("Permiso de ubicación denegado");
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        setUserLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      } catch {
+        setLocationError("Error obteniendo ubicación");
+      }
+    })();
+  }, []);
+
+  // =======================
+  // Cargar eventos
+  // =======================
   useEffect(() => {
     getEvents()
       .then(setEvents)
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = () => {
-    // Eliminar token y redirigir al login (MVP)
-    logout();
-    router.replace("/auth/login");
-  };
+  // =======================
+  // Cargar eventos cercanos
+  // =======================
+  useEffect(() => {
+    if (!userLocation) return;
+
+    getNearbyEvents(
+      userLocation.latitude,
+      userLocation.longitude,
+      10
+    ).then(setNearbyEvents);
+  }, [userLocation]);
 
   if (loading) {
-    return <Text style={{ padding: 16 }}>Cargando eventos...</Text>;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Cargando eventos...</Text>
+      </View>
+    );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f2f2f5", padding: 16 }}>
-      {/* Header: título + logout */}
-      <View
+    <View style={{ flex: 1, padding: 16 }}>
+      {/* ===================== */}
+      {/* UBICACIÓN */}
+      {/* ===================== */}
+      {userLocation && (
+        <Text style={{ marginBottom: 12, color: "#555" }}>
+          Ubicación: {userLocation.latitude.toFixed(5)},{" "}
+          {userLocation.longitude.toFixed(5)}
+        </Text>
+      )}
+
+      {locationError && (
+        <Text style={{ color: "red", marginBottom: 12 }}>
+          {locationError}
+        </Text>
+      )}
+
+      {/* ===================== */}
+      {/* EVENTOS CERCA DE TI */}
+      {/* ===================== */}
+      <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
+        Eventos cerca de ti
+      </Text>
+
+      {nearbyEvents.length === 0 ? (
+        <Text style={{ color: "#666", marginBottom: 16 }}>
+          No hay eventos cercanos
+        </Text>
+      ) : (
+        nearbyEvents.map((event) => (
+          <Pressable
+            key={event.id}
+            onPress={() => router.push(`/tabs/${event.id}`)}
+            style={{
+              padding: 16,
+              borderWidth: 1,
+              borderRadius: 8,
+              marginBottom: 12,
+              backgroundColor: "#fff",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600" }}>
+              {event.title}
+            </Text>
+
+            <Text style={{ color: "#555", marginTop: 4 }}>
+              📍{" "}
+              {typeof event.distance === "number"
+                ? `${event.distance.toFixed(2)} km`
+                : "Distancia no disponible"}
+            </Text>
+          </Pressable>
+        ))
+      )}
+
+      {/* ===================== */}
+      {/* LISTADO GENERAL */}
+      {/* ===================== */}
+      <Text
         style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
+          fontSize: 18,
+          fontWeight: "bold",
+          marginTop: 24,
           marginBottom: 12,
         }}
       >
-        <Text style={{ fontSize: 24, fontWeight: "700" }}>Eventos disponibles</Text>
-
-        <Button title="Cerrar sesión" onPress={handleLogout} />
-      </View>
+        Eventos disponibles
+      </Text>
 
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/tabs/${item.id}`)}
             style={{
-              backgroundColor: "#fff",
               padding: 16,
-              borderRadius: 12,
+              borderWidth: 1,
+              borderRadius: 8,
               marginBottom: 12,
-              // Shadow (iOS)
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              // Elevation (Android)
-              elevation: 3,
+              backgroundColor: "#fff",
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 6 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600" }}>
               {item.title}
             </Text>
 
-            <Text style={{ color: "#666", marginBottom: 8 }}>
-              {new Date(item.date).toLocaleDateString()}{" "}
-              {new Date(item.date).toLocaleTimeString()}
+            <Text style={{ color: "#555", marginTop: 4 }}>
+              {new Date(item.date).toLocaleString()}
             </Text>
 
-            {item.description ? (
-              <Text style={{ color: "#444", lineHeight: 20 }}>
+            {item.description && (
+              <Text style={{ marginTop: 8, color: "#666" }}>
                 {item.description}
               </Text>
-            ) : null}
+            )}
           </Pressable>
         )}
       />

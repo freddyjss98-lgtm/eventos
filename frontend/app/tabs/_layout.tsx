@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from "expo-router";
-import { isAuthenticated } from "../auth/auth";
+import { getUserRole, isAuthenticated } from "../auth/auth";
 
 export default function TabsLayout() {
   const loggedIn = isAuthenticated();
@@ -7,6 +7,13 @@ export default function TabsLayout() {
   if (!loggedIn) {
     return <Redirect href="/auth/login" />;
   }
+
+  const role = getUserRole();
+
+if (role === "ORGANIZER") {
+  return <Redirect href="/organizer" />;
+}
+
 
   return (
     <Tabs screenOptions={{ headerShown: false }}>

@@ -32,6 +32,9 @@
         "projectId": "da8e0513-cb10-43f3-aa39-10364a528c41"
       }
     },
-    "owner": "freddyjs_go"
+    "owner": "freddyjs_go",
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

@@ -2,6 +2,8 @@ import { View, Text, TextInput, Button, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useState } from "react";
 import { api } from "../../src/api/client";
+import { getUserRole, logout } from "./auth";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,34 +11,39 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    setError("");
+const handleLogin = async () => {
+  setError(null);
 
-    if (!email || !password) {
-      setError("Email y contraseña son requeridos");
+  try {
+    const res = await api.post("/auth/login", {
+      email,
+      password,
+    });
+
+    const token = res.data?.access_token;
+    if (!token) {
+      setError("Error inesperado de autenticación");
       return;
     }
 
-    try {
-      setLoading(true);
+    localStorage.setItem("token", token);
 
-      const res = await api.post("/auth/login", {
-        email,
-        password,
-      });
+    const role = getUserRole();
 
-      const token = res.data.access_token;
-
-      // 🟢 Guardar JWT para el MVP (web)
-      localStorage.setItem("token", token);
-
+    if (role === "USER") {
       router.replace("/tabs");
-    } catch (err) {
-      setError("Credenciales inválidas");
-    } finally {
-      setLoading(false);
+    } else {
+      // ORGANIZER o ADMIN intentando entrar por login de USER
+      logout();
+      setError(
+        "Este acceso es solo para usuarios. Ingresa como organizador."
+      );
     }
-  };
+  } catch (err: any) {
+    setError("Credenciales inválidas");
+  }
+};
+
 
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
@@ -76,6 +83,12 @@ export default function Login() {
           ¿No tienes cuenta? Regístrate
         </Text>
       </Pressable>
+      
+<Pressable onPress={() => router.push("/auth/organizer")} style={{ marginTop: 12 }}>
+  <Text style={{ color: "blue", textAlign: "center" }}>
+    ¿Quieres publicar un evento? Soy organizador
+  </Text>
+</Pressable>
     </View>
   );
 }
