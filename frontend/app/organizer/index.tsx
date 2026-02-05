@@ -18,7 +18,7 @@ export default function OrganizerDashboard() {
 
       <Button
         title="📋 Ver mis eventos"
-        onPress={() => router.push("/events/mine")}
+        onPress={() => router.push("/organizer/my-events")}
       />
 
       <View style={{ height: 12 }} />

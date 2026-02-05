@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from "expo-router";
-import { getUserRole, isAuthenticated } from "../auth/auth";
+import { isAuthenticated } from "../auth/auth";
 
 export default function TabsLayout() {
   const loggedIn = isAuthenticated();
@@ -8,17 +8,23 @@ export default function TabsLayout() {
     return <Redirect href="/auth/login" />;
   }
 
-  const role = getUserRole();
-
-if (role === "ORGANIZER") {
-  return <Redirect href="/organizer" />;
-}
-
-
   return (
     <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index" options={{ title: "Eventos" }} />
-      <Tabs.Screen name="profile" options={{ title: "Mi cuenta" }} />
+      <Tabs.Screen
+        name="index"
+        options={{ title: "Eventos" }}
+      />
+
+      <Tabs.Screen
+        name="map"
+        options={{ title: "Mapa" }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Mi cuenta" }}
+      />
     </Tabs>
   );
 }
+

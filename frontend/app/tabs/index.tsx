@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, Text, FlatList, Pressable, Image } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import * as Location from "expo-location";
@@ -10,6 +10,8 @@ type EventItem = {
   title: string;
   description?: string;
   date: string;
+  imagenUrl?: string | null;
+  category?: string; // 👈 NUEVO
 };
 
 type NearbyEvent = EventItem & {
@@ -26,8 +28,6 @@ export default function EventsScreen() {
     longitude: number;
   } | null>(null);
 
-  const [locationError, setLocationError] = useState<string | null>(null);
-
   // =======================
   // Obtener ubicación
   // =======================
@@ -39,10 +39,7 @@ export default function EventsScreen() {
         const { status } =
           await Location.requestForegroundPermissionsAsync();
 
-        if (status !== "granted") {
-          setLocationError("Permiso de ubicación denegado");
-          return;
-        }
+        if (status !== "granted") return;
 
         const pos = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -52,9 +49,7 @@ export default function EventsScreen() {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
-      } catch {
-        setLocationError("Error obteniendo ubicación");
-      }
+      } catch {}
     })();
   }, []);
 
@@ -89,23 +84,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      {/* ===================== */}
-      {/* UBICACIÓN */}
-      {/* ===================== */}
-      {userLocation && (
-        <Text style={{ marginBottom: 12, color: "#555" }}>
-          Ubicación: {userLocation.latitude.toFixed(5)},{" "}
-          {userLocation.longitude.toFixed(5)}
-        </Text>
-      )}
-
-      {locationError && (
-        <Text style={{ color: "red", marginBottom: 12 }}>
-          {locationError}
-        </Text>
-      )}
-
+    <View style={{ flex: 1, padding: 16, backgroundColor: "#f5f5f5" }}>
       {/* ===================== */}
       {/* EVENTOS CERCA DE TI */}
       {/* ===================== */}
@@ -123,9 +102,8 @@ export default function EventsScreen() {
             key={event.id}
             onPress={() => router.push(`/tabs/${event.id}`)}
             style={{
-              padding: 16,
-              borderWidth: 1,
-              borderRadius: 8,
+              padding: 14,
+              borderRadius: 10,
               marginBottom: 12,
               backgroundColor: "#fff",
             }}
@@ -161,30 +139,82 @@ export default function EventsScreen() {
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 12 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/tabs/${item.id}`)}
             style={{
-              padding: 16,
-              borderWidth: 1,
-              borderRadius: 8,
-              marginBottom: 12,
+              flex: 1,
               backgroundColor: "#fff",
+              borderRadius: 12,
+              overflow: "hidden",
+              marginBottom: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+              elevation: 3,
             }}
           >
-            <Text style={{ fontSize: 16, fontWeight: "600" }}>
-              {item.title}
-            </Text>
-
-            <Text style={{ color: "#555", marginTop: 4 }}>
-              {new Date(item.date).toLocaleString()}
-            </Text>
-
-            {item.description && (
-              <Text style={{ marginTop: 8, color: "#666" }}>
-                {item.description}
-              </Text>
+            {/* 🖼️ IMAGEN */}
+            {item.imagenUrl && (
+              <Image
+                source={{ uri: item.imagenUrl }}
+                style={{
+                  width: "100%",
+                  aspectRatio: 1 / 1.2,
+                  maxHeight: 150,
+                  backgroundColor: "transparent",
+                }}
+                resizeMode="contain"
+              />
             )}
+
+            {/* 🏷️ CATEGORÍA */}
+            {item.category && (
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: "#eef2ff",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  margin: 8,
+                  marginBottom: 0,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: "#3730a3",
+                    fontWeight: "600",
+                  }}
+                >
+                  {item.category}
+                </Text>
+              </View>
+            )}
+
+            {/* 📄 CONTENIDO */}
+            <View style={{ padding: 10 }}>
+              <Text
+                numberOfLines={2}
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  marginBottom: 4,
+                }}
+              >
+                {item.title}
+              </Text>
+
+              <Text style={{ fontSize: 12, color: "#666" }}>
+                {new Date(item.date).toLocaleDateString()}
+              </Text>
+            </View>
           </Pressable>
         )}
       />
