@@ -1,9 +1,12 @@
+// frontend/app/organizer/events/[id]/edit.tsx
+import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, Button } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { useEffect, useState } from "react";
 import { api } from "../../../../src/api/client";
+import { Event } from "../../../../src/types";
+
 export default function EditEvent() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -11,16 +14,21 @@ export default function EditEvent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔹 Cargar datos del evento
+  // Cargar datos del evento
   useEffect(() => {
     if (!id) return;
 
-    api.get(`/events/${id}`).then((res) => {
-      const event = res.data;
-      setTitle(event.title);
-      setDescription(event.description);
-      setDate(event.date.split("T")[0]); // YYYY-MM-DD
-    });
+    api
+      .get(`/events/${id}`)
+      .then((res) => {
+        const event = res.data as Event;
+        setTitle(event.title);
+        setDescription(event.description ?? "");
+        setDate(event.date.split("T")[0]); // YYYY-MM-DD
+      })
+      .catch((err) => {
+        if (__DEV__) console.error("GET EVENT FOR EDIT ERROR", err);
+      });
   }, [id]);
 
   const handleUpdate = async () => {
@@ -40,12 +48,10 @@ export default function EditEvent() {
         date,
       });
 
-      // volver al listado
       router.replace("/organizer/my-events");
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || "Error actualizando evento"
-      );
+      setError(err?.response?.data?.message || "Error actualizando evento");
+      if (__DEV__) console.error("UPDATE EVENT ERROR", err);
     } finally {
       setLoading(false);
     }
@@ -53,9 +59,7 @@ export default function EditEvent() {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 22, marginBottom: 16 }}>
-        Editar evento
-      </Text>
+      <Text style={{ fontSize: 22, marginBottom: 16 }}>Editar evento</Text>
 
       <TextInput
         placeholder="Título"
@@ -84,17 +88,9 @@ export default function EditEvent() {
         style={{ borderWidth: 1, padding: 12, marginBottom: 12 }}
       />
 
-      {error && (
-        <Text style={{ color: "red", marginBottom: 12 }}>
-          {error}
-        </Text>
-      )}
+      {error && <Text style={{ color: "red", marginBottom: 12 }}>{error}</Text>}
 
-      <Button
-        title={loading ? "Guardando..." : "Guardar cambios"}
-        onPress={handleUpdate}
-        disabled={loading}
-      />
+      <Button title={loading ? "Guardando..." : "Guardar cambios"} onPress={handleUpdate} disabled={loading} />
     </View>
   );
 }
